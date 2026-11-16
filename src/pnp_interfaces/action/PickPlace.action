@@ -1,0 +1,14 @@
+# ===== GOAL: sent by the task layer to start a pick-and-place =====
+string object_id                       # which object, e.g. "red_0"
+geometry_msgs/PoseStamped pick_pose    # where the object is now (with its frame)
+geometry_msgs/PoseStamped place_pose   # where it should go (with its frame)
+float64 object_height                  # used to compute how deep to grasp [m]
+---
+# ===== RESULT: sent once when the task finishes =====
+bool success                           # true if the object was placed
+string message                         # human-readable explanation
+string failed_stage                    # e.g. "approach"; empty on success
+---
+# ===== FEEDBACK: sent repeatedly while the task runs =====
+string stage                           # current stage, e.g. "lift"
+float32 progress                       # 0.0 to 1.0
