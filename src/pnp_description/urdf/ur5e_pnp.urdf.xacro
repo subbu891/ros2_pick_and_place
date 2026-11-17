@@ -6,7 +6,7 @@
   <!-- Reuse UR's macro and our gripper macro -->
   <xacro:include filename="$(find ur_description)/urdf/ur_macro.xacro"/>
   <xacro:include filename="$(find pnp_description)/urdf/parallel_gripper.xacro"/>
-
+  <xacro:include filename="$(find pnp_description)/urdf/pnp.ros2_control.xacro"/>
   <!-- Root of the TF tree -->
   <link name="world"/>
 
@@ -49,4 +49,5 @@
   <xacro:parallel_gripper parent="tool0">
     <origin xyz="0 0 0" rpy="0 0 0"/>
   </xacro:parallel_gripper>
+  <xacro:pnp_ros2_control/>
 </robot>

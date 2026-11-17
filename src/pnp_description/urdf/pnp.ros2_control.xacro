@@ -1,0 +1,46 @@
+<?xml version="1.0"?>
+<robot xmlns:xacro="http://wiki.ros.org/xacro">
+
+  <xacro:macro name="pnp_ros2_control">
+    <!-- Start pose: gripper above the table, pointing down -->
+    <xacro:property name="init" value="${dict(
+        shoulder_pan_joint=0.0, shoulder_lift_joint=-1.5708, elbow_joint=1.5708,
+        wrist_1_joint=-1.5708, wrist_2_joint=-1.5708, wrist_3_joint=0.0)}"/>
+
+    <ros2_control name="pnp_system" type="system">
+      <hardware>
+        <plugin>mock_components/GenericSystem</plugin>
+      </hardware>
+
+      <xacro:macro name="arm_joint" params="name">
+        <joint name="${name}">
+          <command_interface name="position"/>
+          <state_interface name="position">
+            <param name="initial_value">${init[name]}</param>
+          </state_interface>
+          <state_interface name="velocity"/>
+        </joint>
+      </xacro:macro>
+
+      <xacro:arm_joint name="shoulder_pan_joint"/>
+      <xacro:arm_joint name="shoulder_lift_joint"/>
+      <xacro:arm_joint name="elbow_joint"/>
+      <xacro:arm_joint name="wrist_1_joint"/>
+      <xacro:arm_joint name="wrist_2_joint"/>
+      <xacro:arm_joint name="wrist_3_joint"/>
+
+      <xacro:macro name="finger_joint" params="name">
+        <joint name="${name}">
+          <command_interface name="position"/>
+          <state_interface name="position">
+            <param name="initial_value">0.035</param>   <!-- open -->
+          </state_interface>
+          <state_interface name="velocity"/>
+        </joint>
+      </xacro:macro>
+
+      <xacro:finger_joint name="left_finger_joint"/>
+      <xacro:finger_joint name="right_finger_joint"/>
+    </ros2_control>
+  </xacro:macro>
+</robot>
