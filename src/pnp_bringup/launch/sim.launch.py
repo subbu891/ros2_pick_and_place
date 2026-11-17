@@ -113,7 +113,12 @@ def generate_launch_description():
         arguments=['-d', os.path.join(moveit_pkg, 'rviz', 'moveit.rviz')],
         parameters=[cfg.robot_description, cfg.robot_description_semantic,
                     cfg.planning_pipelines, sim_time])
-
+        # ---------------- Perception ----------------
+    detector = Node(
+        package='pnp_perception', executable='object_detector', name='object_detector',
+        parameters=[os.path.join(get_package_share_directory('pnp_perception'),
+                                 'config', 'object_detector.yaml')],
+        output='screen')
     # ---------------- Order matters: arguments and environment first ----------------
     return LaunchDescription([
         headless_arg,
@@ -128,4 +133,5 @@ def generate_launch_description():
         start_controllers,
         move_group,
         rviz,
+        detector,
     ])
