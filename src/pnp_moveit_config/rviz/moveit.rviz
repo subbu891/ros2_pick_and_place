@@ -1,0 +1,30 @@
+Panels:
+  - Class: rviz_common/Displays
+    Name: Displays
+Visualization Manager:
+  Class: ""
+  Displays:
+    - Class: rviz_default_plugins/Grid
+      Name: Grid
+      Enabled: true
+    - Class: moveit_rviz_plugin/MotionPlanning
+      Name: MotionPlanning
+      Enabled: true
+      Move Group: ur_manipulator
+      Move Group Namespace: ""	
+      Planning Scene Topic: /monitored_planning_scene
+      Robot Description: robot_description
+  Enabled: true
+  Global Options:
+    Fixed Frame: world
+    Frame Rate: 30
+  Tools:
+    - Class: rviz_default_plugins/Interact
+    - Class: rviz_default_plugins/MoveCamera
+  Views:
+    Current:
+      Class: rviz_default_plugins/Orbit
+      Distance: 2.2
+      Focal Point: {X: 0.4, Y: 0.0, Z: 0.5}
+      Pitch: 0.5
+      Yaw: 0.8
