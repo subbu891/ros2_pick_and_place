@@ -45,6 +45,9 @@ def generate_launch_description():
     mesh_path = AppendEnvironmentVariable(
         'IGN_GAZEBO_RESOURCE_PATH',
         os.path.dirname(get_package_share_directory('ur_description')))
+    # ...and our own models (model://cube_red, model://bin, ...)
+    model_path = AppendEnvironmentVariable(
+        'IGN_GAZEBO_RESOURCE_PATH', os.path.join(bringup_pkg, 'models'))
 
     # ---------------- Gazebo ----------------
     # -r: start running immediately; -s: server only (added when headless:=true)
@@ -58,9 +61,32 @@ def generate_launch_description():
     spawn = Node(package='ros_gz_sim', executable='create', output='screen',
                  arguments=['-topic', 'robot_description', '-name', 'ur5e_pnp'])
 
-    # Gazebo clock -> ROS /clock  ("[" = Gazebo to ROS only)
-    bridge = Node(package='ros_gz_bridge', executable='parameter_bridge', output='screen',
-                  arguments=['/clock@rosgraph_msgs/msg/Clock[ignition.msgs.Clock'])
+    # Gazebo -> ROS topics ("[" = Gazebo to ROS only)
+    bridge = Node(
+        package='ros_gz_bridge', executable='parameter_bridge', output='screen',
+        arguments=[
+            '/clock@rosgraph_msgs/msg/Clock[ignition.msgs.Clock',
+            '/camera/image@sensor_msgs/msg/Image[ignition.msgs.Image',
+            '/camera/depth_image@sensor_msgs/msg/Image[ignition.msgs.Image',
+            '/camera/camera_info@sensor_msgs/msg/CameraInfo[ignition.msgs.CameraInfo',
+        ],
+        parameters=[sim_time])
+
+    # Camera position in TF: must match the overhead_camera pose in the world file.
+    #   camera_link: the camera body (X = viewing direction, as in Gazebo)
+    #   camera_optical_frame: image convention (Z forward, X right, Y down)
+    camera_tf = [
+        Node(package='tf2_ros', executable='static_transform_publisher',
+             arguments=['--x', '0.50', '--y', '0.05', '--z', '1.40',
+                        '--roll', '0', '--pitch', '1.5708', '--yaw', '0',
+                        '--frame-id', 'world', '--child-frame-id', 'camera_link'],
+             parameters=[sim_time]),
+        Node(package='tf2_ros', executable='static_transform_publisher',
+             arguments=['--roll', '-1.5708', '--pitch', '0', '--yaw', '-1.5708',
+                        '--frame-id', 'camera_link',
+                        '--child-frame-id', 'camera_optical_frame'],
+             parameters=[sim_time]),
+    ]
 
     # ---------------- Robot state + controllers ----------------
     robot_state_publisher = Node(
@@ -93,8 +119,10 @@ def generate_launch_description():
         headless_arg,
         software_gl,
         mesh_path,
+        model_path,
         gazebo,
         bridge,
+        *camera_tf,
         robot_state_publisher,
         spawn,
         start_controllers,

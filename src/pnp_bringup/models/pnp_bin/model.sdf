@@ -1,0 +1,37 @@
+<?xml version="1.0"?>
+<sdf version="1.8">
+  <model name="pnp_bin">
+    <static>true</static>
+    <link name="link">
+      <collision name="floor_c"><pose>0 0 0.002 0 0 0</pose>
+        <geometry><box><size>0.14 0.14 0.004</size></box></geometry></collision>
+      <visual name="floor_v"><pose>0 0 0.002 0 0 0</pose>
+        <geometry><box><size>0.14 0.14 0.004</size></box></geometry>
+        <material><ambient>0.85 0.85 0.85 1</ambient><diffuse>0.85 0.85 0.85 1</diffuse></material></visual>
+
+      <collision name="wall_px_c"><pose>0.0675 0 0.015 0 0 0</pose>
+        <geometry><box><size>0.005 0.14 0.03</size></box></geometry></collision>
+      <visual name="wall_px_v"><pose>0.0675 0 0.015 0 0 0</pose>
+        <geometry><box><size>0.005 0.14 0.03</size></box></geometry>
+        <material><ambient>0.3 0.3 0.3 1</ambient><diffuse>0.3 0.3 0.3 1</diffuse></material></visual>
+
+      <collision name="wall_nx_c"><pose>-0.0675 0 0.015 0 0 0</pose>
+        <geometry><box><size>0.005 0.14 0.03</size></box></geometry></collision>
+      <visual name="wall_nx_v"><pose>-0.0675 0 0.015 0 0 0</pose>
+        <geometry><box><size>0.005 0.14 0.03</size></box></geometry>
+        <material><ambient>0.3 0.3 0.3 1</ambient><diffuse>0.3 0.3 0.3 1</diffuse></material></visual>
+
+      <collision name="wall_py_c"><pose>0 0.0675 0.015 0 0 0</pose>
+        <geometry><box><size>0.14 0.005 0.03</size></box></geometry></collision>
+      <visual name="wall_py_v"><pose>0 0.0675 0.015 0 0 0</pose>
+        <geometry><box><size>0.14 0.005 0.03</size></box></geometry>
+        <material><ambient>0.3 0.3 0.3 1</ambient><diffuse>0.3 0.3 0.3 1</diffuse></material></visual>
+
+      <collision name="wall_ny_c"><pose>0 -0.0675 0.015 0 0 0</pose>
+        <geometry><box><size>0.14 0.005 0.03</size></box></geometry></collision>
+      <visual name="wall_ny_v"><pose>0 -0.0675 0.015 0 0 0</pose>
+        <geometry><box><size>0.14 0.005 0.03</size></box></geometry>
+        <material><ambient>0.3 0.3 0.3 1</ambient><diffuse>0.3 0.3 0.3 1</diffuse></material></visual>
+    </link>
+  </model>
+</sdf>

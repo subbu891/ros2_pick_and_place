@@ -62,5 +62,37 @@
         </visual>
       </link>
     </model>
+        <!-- ===== Bins (centres at y = 0.35, on the table top z = 0.40) ===== -->
+    <include><uri>model://pnp_bin</uri><name>bin_red</name>  <pose>0.30 0.35 0.40 0 0 0</pose></include>
+    <include><uri>model://pnp_bin</uri><name>bin_green</name><pose>0.45 0.35 0.40 0 0 0</pose></include>
+    <include><uri>model://pnp_bin</uri><name>bin_blue</name> <pose>0.60 0.35 0.40 0 0 0</pose></include>
+
+    <!-- ===== Cubes (centre z = 0.42: table top + half a cube); last value = yaw ===== -->
+    <include><uri>model://cube_red</uri>  <name>cube_red_0</name>  <pose>0.40 -0.20 0.421 0 0  0.3</pose></include>
+    <include><uri>model://cube_red</uri>  <name>cube_red_1</name>  <pose>0.62  0.05 0.421 0 0 -0.5</pose></include>
+    <include><uri>model://cube_green</uri><name>cube_green_0</name><pose>0.52 -0.08 0.421 0 0  0.0</pose></include>
+    <include><uri>model://cube_green</uri><name>cube_green_1</name><pose>0.35  0.10 0.421 0 0  0.7</pose></include>
+    <include><uri>model://cube_blue</uri> <name>cube_blue_0</name> <pose>0.65 -0.25 0.421 0 0  0.2</pose></include>
+    <include><uri>model://cube_blue</uri> <name>cube_blue_1</name> <pose>0.45 -0.32 0.421 0 0 -0.3</pose></include>
+
+    <!-- ===== Overhead RGB-D camera, 1 m above the table, looking straight down ===== -->
+    <model name="overhead_camera">
+      <static>true</static>
+      <pose>0.50 0.05 1.40 0 1.5708 0</pose>
+      <link name="link">
+        <sensor name="rgbd" type="rgbd_camera">
+          <topic>camera</topic>
+          <ignition_frame_id>camera_optical_frame</ignition_frame_id>
+          <update_rate>10</update_rate>
+          <always_on>true</always_on>
+          <camera>
+            <horizontal_fov>1.047</horizontal_fov>
+            <image><width>640</width><height>480</height><format>R8G8B8</format></image>
+            <clip><near>0.1</near><far>3.0</far></clip>
+            <depth_camera><clip><near>0.1</near><far>3.0</far></clip></depth_camera>
+          </camera>
+        </sensor>
+      </link>
+    </model>
   </world>
 </sdf>
