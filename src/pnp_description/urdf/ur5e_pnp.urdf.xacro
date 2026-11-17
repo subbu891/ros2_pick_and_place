@@ -1,0 +1,52 @@
+<?xml version="1.0"?>
+<robot xmlns:xacro="http://wiki.ros.org/xacro" name="ur5e_pnp">
+
+  <xacro:property name="pedestal_h" value="0.40"/>
+
+  <!-- Reuse UR's macro and our gripper macro -->
+  <xacro:include filename="$(find ur_description)/urdf/ur_macro.xacro"/>
+  <xacro:include filename="$(find pnp_description)/urdf/parallel_gripper.xacro"/>
+
+  <!-- Root of the TF tree -->
+  <link name="world"/>
+
+  <!-- Pedestal: robot base ends up level with the table top -->
+  <joint name="pedestal_joint" type="fixed">
+    <parent link="world"/>
+    <child link="pedestal"/>
+  </joint>
+  <link name="pedestal">
+    <visual>
+      <origin xyz="0 0 ${pedestal_h/2}"/>
+      <geometry><box size="0.2 0.2 ${pedestal_h}"/></geometry>
+      <material name="pedestal_grey"><color rgba="0.5 0.5 0.55 1"/></material>
+    </visual>
+    <collision>
+      <origin xyz="0 0 ${pedestal_h/2}"/>
+      <geometry><box size="0.2 0.2 ${pedestal_h}"/></geometry>
+    </collision>
+    <inertial>
+      <origin xyz="0 0 ${pedestal_h/2}"/>
+      <mass value="50"/>
+      <inertia ixx="1" ixy="0" ixz="0" iyy="1" iyz="0" izz="1"/>
+    </inertial>
+  </link>
+
+  <!-- The UR5e arm on top of the pedestal -->
+  <xacro:ur_robot
+    name="ur5e"
+    tf_prefix=""
+    parent="pedestal"
+    joint_limits_parameters_file="$(find ur_description)/config/ur5e/joint_limits.yaml"
+    kinematics_parameters_file="$(find ur_description)/config/ur5e/default_kinematics.yaml"
+    physical_parameters_file="$(find ur_description)/config/ur5e/physical_parameters.yaml"
+    visual_parameters_file="$(find ur_description)/config/ur5e/visual_parameters.yaml"
+    generate_ros2_control_tag="false">
+    <origin xyz="0 0 ${pedestal_h}" rpy="0 0 0"/>
+  </xacro:ur_robot>
+
+  <!-- Our gripper on the flange -->
+  <xacro:parallel_gripper parent="tool0">
+    <origin xyz="0 0 0" rpy="0 0 0"/>
+  </xacro:parallel_gripper>
+</robot>

@@ -1,0 +1,71 @@
+<?xml version="1.0"?>
+<robot xmlns:xacro="http://wiki.ros.org/xacro">
+
+  <!-- parent: link to mount on (tool0). *origin: mounting offset. -->
+  <xacro:macro name="parallel_gripper" params="parent *origin">
+    <xacro:property name="base_h" value="0.03"/>       <!-- gripper body height [m] -->
+    <xacro:property name="finger_len" value="0.06"/>   <!-- finger length [m] -->
+
+    <!-- Fixed joint: the gripper body is bolted to the flange -->
+    <joint name="gripper_mount_joint" type="fixed">
+      <parent link="${parent}"/>
+      <child link="gripper_base_link"/>
+      <xacro:insert_block name="origin"/>
+    </joint>
+
+    <link name="gripper_base_link">
+      <visual>
+        <origin xyz="0 0 ${base_h/2}"/>
+        <geometry><box size="0.05 0.12 ${base_h}"/></geometry>
+        <material name="gripper_grey"><color rgba="0.25 0.25 0.28 1"/></material>
+      </visual>
+      <collision>
+        <origin xyz="0 0 ${base_h/2}"/>
+        <geometry><box size="0.05 0.12 ${base_h}"/></geometry>
+      </collision>
+      <inertial>
+        <origin xyz="0 0 ${base_h/2}"/>
+        <mass value="0.4"/>
+        <inertia ixx="5e-4" ixy="0" ixz="0" iyy="1e-4" iyz="0" izz="5e-4"/>
+      </inertial>
+    </link>
+
+    <!-- A macro inside a macro: one finger. sign=+1 left, -1 right -->
+    <xacro:macro name="finger" params="side sign">
+      <joint name="${side}_finger_joint" type="prismatic">
+        <parent link="gripper_base_link"/>
+        <child link="${side}_finger_link"/>
+        <origin xyz="0 0 ${base_h}"/>
+        <axis xyz="0 ${sign} 0"/>                     <!-- slides sideways -->
+        <limit lower="0.0" upper="0.04" effort="40" velocity="0.1"/>
+      </joint>
+      <link name="${side}_finger_link">
+        <visual>
+          <origin xyz="0 ${sign*0.005} ${finger_len/2}"/>
+          <geometry><box size="0.02 0.01 ${finger_len}"/></geometry>
+          <material name="finger_black"><color rgba="0.05 0.05 0.05 1"/></material>
+        </visual>
+        <collision>
+          <origin xyz="0 ${sign*0.005} ${finger_len/2}"/>
+          <geometry><box size="0.02 0.01 ${finger_len}"/></geometry>
+        </collision>
+        <inertial>
+          <origin xyz="0 ${sign*0.005} ${finger_len/2}"/>
+          <mass value="0.05"/>
+          <inertia ixx="1.5e-5" ixy="0" ixz="0" iyy="1.7e-5" iyz="0" izz="2e-6"/>
+        </inertial>
+      </link>
+    </xacro:macro>
+
+    <xacro:finger side="left" sign="1"/>
+    <xacro:finger side="right" sign="-1"/>
+
+    <!-- TCP: between the fingers, 1.5 cm above the tips -->
+    <joint name="gripper_tcp_joint" type="fixed">
+      <parent link="gripper_base_link"/>
+      <child link="gripper_tcp"/>
+      <origin xyz="0 0 ${base_h + finger_len - 0.015}"/>
+    </joint>
+    <link name="gripper_tcp"/>
+  </xacro:macro>
+</robot>
