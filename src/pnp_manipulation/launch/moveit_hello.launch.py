@@ -21,5 +21,5 @@ def generate_launch_description():
     return LaunchDescription([
         Node(package='pnp_manipulation', executable='moveit_hello', output='screen',
              parameters=[cfg.robot_description, cfg.robot_description_semantic,
-                         cfg.robot_description_kinematics]),
+                         cfg.robot_description_kinematics, {'use_sim_time' : True}]),
     ])
