@@ -1,5 +1,6 @@
 <?xml version="1.0"?>
 <robot xmlns:xacro="http://wiki.ros.org/xacro" name="ur5e_pnp">
+<xacro:arg name="sim_mode" default="mock"/>
 
   <xacro:property name="pedestal_h" value="0.40"/>
 
@@ -49,5 +50,5 @@
   <xacro:parallel_gripper parent="tool0">
     <origin xyz="0 0 0" rpy="0 0 0"/>
   </xacro:parallel_gripper>
-  <xacro:pnp_ros2_control/>
+  <xacro:pnp_ros2_control sim_mode="$(arg sim_mode)"/>
 </robot>
