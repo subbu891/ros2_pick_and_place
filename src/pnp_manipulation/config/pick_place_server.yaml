@@ -1,0 +1,16 @@
+pick_place_server:
+  ros__parameters:
+    use_sim_time: true
+    tcp_link: gripper_tcp
+    world_frame: world
+    place_surface_z: 0.40      # table / bin floor height [m]
+    cartesian_eef_step: 0.005
+    min_cartesian_fraction: 0.95
+    plan_retries: 3
+    approach_distance: 0.12
+    lift_distance: 0.15
+    grasp_depth: 0.015
+    place_clearance: 0.005
+    # Must match the table in pnp_world.sdf (top at z = 0.40)
+    table_size: [0.8, 1.2, 0.40]
+    table_center: [0.55, 0.0, 0.20]

@@ -8,6 +8,7 @@
   <xacro:include filename="$(find ur_description)/urdf/ur_macro.xacro"/>
   <xacro:include filename="$(find pnp_description)/urdf/parallel_gripper.xacro"/>
   <xacro:include filename="$(find pnp_description)/urdf/pnp.ros2_control.xacro"/>
+  <xacro:include filename="$(find pnp_description)/urdf/pnp.gazebo_grasp.xacro"/>
   <!-- Root of the TF tree -->
   <link name="world"/>
 
@@ -51,4 +52,7 @@
     <origin xyz="0 0 0" rpy="0 0 0"/>
   </xacro:parallel_gripper>
   <xacro:pnp_ros2_control sim_mode="$(arg sim_mode)"/>
+    <xacro:if value="${'$(arg sim_mode)' == 'gazebo'}">
+    <xacro:pnp_gazebo_grasp/>
+  </xacro:if>
 </robot>
