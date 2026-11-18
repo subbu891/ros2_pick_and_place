@@ -26,6 +26,7 @@ setup(
         'console_scripts': [
                'gz_grasp_bridge = pnp_task.gz_grasp_bridge:main',
                'controller_activator = pnp_task.controller_activator:main',
+               'sorter = pnp_task.sorter_node:main',
         ],
     },
 )

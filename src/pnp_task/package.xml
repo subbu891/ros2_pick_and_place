@@ -13,6 +13,7 @@
   <depend>tf2_ros</depend>
   <depend>controller_manager_msgs</depend>
   <depend>biltin_interfaces</depend>
+  <depend>pnp_interface</depend>
 
   <test_depend>ament_copyright</test_depend>
   <test_depend>ament_flake8</test_depend>

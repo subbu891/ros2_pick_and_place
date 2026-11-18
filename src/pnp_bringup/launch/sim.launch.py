@@ -5,6 +5,7 @@ from launch import LaunchDescription
 from launch.actions import (AppendEnvironmentVariable, DeclareLaunchArgument,
                             IncludeLaunchDescription, RegisterEventHandler,
                             SetEnvironmentVariable)
+from launch.conditions import IfCondition
 from launch.event_handlers import OnProcessExit
 from launch.launch_description_sources import PythonLaunchDescriptionSource
 from launch.substitutions import LaunchConfiguration, PythonExpression
@@ -42,28 +43,26 @@ def generate_launch_description():
     headless_arg = DeclareLaunchArgument(
         'headless', default_value='true',
         description='Run Gazebo without its GUI window (true/false)')
+    task_arg = DeclareLaunchArgument(
+        'task', default_value='true',
+        description='Start the autonomous sorting task (true/false)')
     headless = LaunchConfiguration('headless', default='true')
 
     # ---------------- Environment ----------------
-    # Skip the VMware 3D driver (no acceleration) and render on the CPU instead
     software_gl = SetEnvironmentVariable('LIBGL_ALWAYS_SOFTWARE', '1')
-    # Gazebo must find the UR meshes (package://ur_description/...)
     mesh_path = AppendEnvironmentVariable(
         'IGN_GAZEBO_RESOURCE_PATH',
         os.path.dirname(get_package_share_directory('ur_description')))
-    # ...and our own models (model://cube_red, model://pnp_bin, ...)
     model_path = AppendEnvironmentVariable(
         'IGN_GAZEBO_RESOURCE_PATH', os.path.join(bringup_pkg, 'models'))
 
     # ---------------- Gazebo ----------------
-    # -r: start running immediately; -s: server only (added when headless:=true)
     gazebo = IncludeLaunchDescription(
         PythonLaunchDescriptionSource(os.path.join(
             get_package_share_directory('ros_gz_sim'), 'launch', 'gz_sim.launch.py')),
         launch_arguments={'gz_args': PythonExpression([
             "'-r ", world, "' + (' -s' if '", headless, "' == 'true' else '')"])}.items())
 
-    # Put the robot into Gazebo, built from the /robot_description topic
     spawn = Node(package='ros_gz_sim', executable='create', output='screen',
                  arguments=['-topic', 'robot_description', '-name', 'ur5e_pnp'])
 
@@ -83,7 +82,6 @@ def generate_launch_description():
     bridge = Node(package='ros_gz_bridge', executable='parameter_bridge', output='screen',
                   arguments=bridge_args, parameters=[sim_time])
 
-    # Camera position in TF: must match the overhead_camera pose in the world file
     camera_tf = [
         Node(package='tf2_ros', executable='static_transform_publisher',
              arguments=['--x', '0.50', '--y', '0.05', '--z', '1.40',
@@ -102,8 +100,6 @@ def generate_launch_description():
         package='robot_state_publisher', executable='robot_state_publisher',
         parameters=[cfg.robot_description, sim_time])
 
-    # Our own activator: retries until ALL controllers are active (robust on slow machines).
-    # Starts once the robot exists in Gazebo (the controller manager lives inside Gazebo).
     controller_activator = Node(
         package='pnp_task', executable='controller_activator', output='screen')
     start_controllers = RegisterEventHandler(
@@ -133,14 +129,25 @@ def generate_launch_description():
                     cfg.robot_description, cfg.robot_description_semantic,
                     cfg.robot_description_kinematics, cfg.joint_limits, sim_time])
 
-    # Simulation-only "magnetic" grasp helper
     grasp_bridge = Node(
         package='pnp_task', executable='gz_grasp_bridge', output='screen',
         parameters=[{'cubes': CUBES}, sim_time])
 
-    # ---------------- Order matters: arguments and environment first ----------------
+    # ---------------- Task layer ----------------
+    sorter = Node(
+        package='pnp_task', executable='sorter', output='screen',
+        parameters=[{
+            'bin_colors': ['red', 'green', 'blue'],
+            'bin_x': [0.30, 0.45, 0.60],      # must match the bins in pnp_world.sdf
+            'bin_y': [0.35, 0.35, 0.35],
+            'workspace': [0.25, 0.75, -0.40, 0.22],
+            'settle_time': 4.0,
+        }, sim_time],
+        condition=IfCondition(LaunchConfiguration('task')))
+
     return LaunchDescription([
         headless_arg,
+        task_arg,
         software_gl,
         mesh_path,
         model_path,
@@ -155,4 +162,5 @@ def generate_launch_description():
         detector,
         pick_place_server,
         grasp_bridge,
+        sorter,
     ])

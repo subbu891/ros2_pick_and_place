@@ -257,9 +257,9 @@ private:
         }},
       {"retreat", [&] {return straightTo(place.retreat);}},
       // Non-fatal: the object is already placed
-      {"move_home", [&] {
-          if (!planAndExecute([&] {arm_->setNamedTarget("home");})) {
-            RCLCPP_WARN(logger_, "Could not return home");
+      {"move_to_observe", [&] {
+          if (!planAndExecute([&] {arm_->setNamedTarget("observe");})) {
+            RCLCPP_WARN(logger_, "Could not reach 'observe'; camera view maybe blocked");
           }
           return true;
         }},
