@@ -16,6 +16,8 @@ def generate_launch_description():
     desc_pkg = get_package_share_directory('pnp_description')
     moveit_pkg = get_package_share_directory('pnp_moveit_config')
     bringup_pkg = get_package_share_directory('pnp_bringup')
+    perception_pkg = get_package_share_directory('pnp_perception')
+    manipulation_pkg = get_package_share_directory('pnp_manipulation')
     world = os.path.join(bringup_pkg, 'worlds', 'pnp_world.sdf')
     sim_time = {'use_sim_time': True}
 
@@ -45,7 +47,7 @@ def generate_launch_description():
     mesh_path = AppendEnvironmentVariable(
         'IGN_GAZEBO_RESOURCE_PATH',
         os.path.dirname(get_package_share_directory('ur_description')))
-    # ...and our own models (model://cube_red, model://bin, ...)
+    # ...and our own models (model://cube_red, model://pnp_bin, ...)
     model_path = AppendEnvironmentVariable(
         'IGN_GAZEBO_RESOURCE_PATH', os.path.join(bringup_pkg, 'models'))
 
@@ -72,9 +74,7 @@ def generate_launch_description():
         ],
         parameters=[sim_time])
 
-    # Camera position in TF: must match the overhead_camera pose in the world file.
-    #   camera_link: the camera body (X = viewing direction, as in Gazebo)
-    #   camera_optical_frame: image convention (Z forward, X right, Y down)
+    # Camera position in TF: must match the overhead_camera pose in the world file
     camera_tf = [
         Node(package='tf2_ros', executable='static_transform_publisher',
              arguments=['--x', '0.50', '--y', '0.05', '--z', '1.40',
@@ -93,15 +93,24 @@ def generate_launch_description():
         package='robot_state_publisher', executable='robot_state_publisher',
         parameters=[cfg.robot_description, sim_time])
 
-    spawners = [
-        Node(package='controller_manager', executable='spawner',
-             arguments=[name, '--controller-manager', '/controller_manager'],
-             parameters=[sim_time])
-        for name in ['joint_state_broadcaster', 'arm_controller', 'gripper_controller']
+    # Activate controllers ONE AFTER ANOTHER: the slow (CPU-rendered) simulation
+    # can't serve three activation requests at once within the timeout.
+    def spawner(name):
+        return Node(package='controller_manager', executable='spawner',
+                    arguments=[name, '--controller-manager', '/controller_manager',
+                               '--controller-manager-timeout', '60'],
+                    parameters=[sim_time])
+
+    jsb_spawner = spawner('joint_state_broadcaster')
+    arm_spawner = spawner('arm_controller')
+    gripper_spawner = spawner('gripper_controller')
+
+    start_controllers = [
+        # robot spawned -> joint_state_broadcaster -> arm -> gripper
+        RegisterEventHandler(OnProcessExit(target_action=spawn, on_exit=[jsb_spawner])),
+        RegisterEventHandler(OnProcessExit(target_action=jsb_spawner, on_exit=[arm_spawner])),
+        RegisterEventHandler(OnProcessExit(target_action=arm_spawner, on_exit=[gripper_spawner])),
     ]
-    # The controller manager lives inside Gazebo -> spawn controllers after the robot
-    start_controllers = RegisterEventHandler(
-        OnProcessExit(target_action=spawn, on_exit=spawners))
 
     # ---------------- MoveIt + RViz ----------------
     move_group = Node(
@@ -113,12 +122,20 @@ def generate_launch_description():
         arguments=['-d', os.path.join(moveit_pkg, 'rviz', 'moveit.rviz')],
         parameters=[cfg.robot_description, cfg.robot_description_semantic,
                     cfg.planning_pipelines, sim_time])
-        # ---------------- Perception ----------------
+
+    # ---------------- Perception ----------------
     detector = Node(
         package='pnp_perception', executable='object_detector', name='object_detector',
-        parameters=[os.path.join(get_package_share_directory('pnp_perception'),
-                                 'config', 'object_detector.yaml')],
+        parameters=[os.path.join(perception_pkg, 'config', 'object_detector.yaml')],
         output='screen')
+
+    # ---------------- Pick-and-place action server ----------------
+    pick_place_server = Node(
+        package='pnp_manipulation', executable='pick_place_server', output='screen',
+        parameters=[os.path.join(manipulation_pkg, 'config', 'pick_place_server.yaml'),
+                    cfg.robot_description, cfg.robot_description_semantic,
+                    cfg.robot_description_kinematics, cfg.joint_limits, sim_time])
+
     # ---------------- Order matters: arguments and environment first ----------------
     return LaunchDescription([
         headless_arg,
@@ -130,8 +147,9 @@ def generate_launch_description():
         *camera_tf,
         robot_state_publisher,
         spawn,
-        start_controllers,
+        *start_controllers,
         move_group,
         rviz,
         detector,
+        pick_place_server,
     ])
