@@ -12,6 +12,8 @@
   <depend>rclcpp</depend>
   <depend>moveit_ros_planning_interface</depend>
   <depend>geometry_msgs</depend>
+  <depend>eigen</depend>
+  <test_depend>ament_cmake_gtest</test_depend>
   <exec_depend>pnp_moveit_config</exec_depend>
   <exec_depend>moveit_configs_utils</exec_depend>
 
