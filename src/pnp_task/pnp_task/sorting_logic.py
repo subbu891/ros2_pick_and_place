@@ -127,23 +127,3 @@ def select_next_target(
     blacklist: Iterable[str] = (),
     robot_xy: Tuple[float, float] = (0.0, 0.0),
 ) -> Optional[Track]:
-    """The next cube to pick: has a bin, is reachable, not sorted yet, not
-    blacklisted. Among those, the one closest to the robot base."""
-    banned = set(blacklist)
-    candidates = [
-        t for t in tracks
-        if t.track_id not in banned
-        and t.color in bins
-        and workspace.contains(t.x, t.y)
-        and not any(b.contains(t.x, t.y) for b in bins.values())
-    ]
-    if not candidates:
-        return None
-    return min(candidates, key=lambda t: math.hypot(t.x - robot_xy[0], t.y - robot_xy[1]))
-
-
-def pick_was_verified(tracker: ObjectTracker, track_id: str) -> bool:
-    """After a reported success, the camera must no longer see the object at
-    its pick spot (missed in recent frames, or dropped by the tracker)."""
-    t = tracker.tracks.get(track_id)
-    return t is None or t.misses > 0
