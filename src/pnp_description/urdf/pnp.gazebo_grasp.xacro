@@ -1,0 +1,29 @@
+<?xml version="1.0"?>
+<robot xmlns:xacro="http://wiki.ros.org/xacro">
+
+  <xacro:macro name="detachable_cube" params="cube">
+    <gazebo>
+      <plugin filename="ignition-gazebo-detachable-joint-system"
+              name="ignition::gazebo::systems::DetachableJoint">
+        <parent_link>wrist_3_link</parent_link>
+        <child_model>${cube}</child_model>
+        <child_link>link</child_link>
+        <attach_topic>/pnp/attach/${cube}</attach_topic>
+        <detach_topic>/pnp/detach/${cube}</detach_topic>
+      </plugin>
+    </gazebo>
+  </xacro:macro>
+
+  <!-- Calls detachable_cube for each name in the list (recursion over the list) -->
+  <xacro:macro name="detachable_cubes" params="names">
+    <xacro:if value="${len(names) > 0}">
+      <xacro:detachable_cube cube="${names[0]}"/>
+      <xacro:detachable_cubes names="${names[1:]}"/>
+    </xacro:if>
+  </xacro:macro>
+
+  <xacro:macro name="pnp_gazebo_grasp">
+    <xacro:detachable_cubes names="${['cube_red_0', 'cube_red_1', 'cube_green_0',
+                                      'cube_green_1', 'cube_blue_0', 'cube_blue_1']}"/>
+  </xacro:macro>
+</robot>

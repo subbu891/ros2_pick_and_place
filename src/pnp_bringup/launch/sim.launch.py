@@ -11,6 +11,10 @@ from launch.substitutions import LaunchConfiguration, PythonExpression
 from launch_ros.actions import Node
 from moveit_configs_utils import MoveItConfigsBuilder
 
+# Must match the cube names in pnp_world.sdf and pnp.gazebo_grasp.xacro
+CUBES = ['cube_red_0', 'cube_red_1', 'cube_green_0', 'cube_green_1',
+         'cube_blue_0', 'cube_blue_1']
+
 
 def generate_launch_description():
     desc_pkg = get_package_share_directory('pnp_description')
@@ -63,16 +67,21 @@ def generate_launch_description():
     spawn = Node(package='ros_gz_sim', executable='create', output='screen',
                  arguments=['-topic', 'robot_description', '-name', 'ur5e_pnp'])
 
-    # Gazebo -> ROS topics ("[" = Gazebo to ROS only)
-    bridge = Node(
-        package='ros_gz_bridge', executable='parameter_bridge', output='screen',
-        arguments=[
-            '/clock@rosgraph_msgs/msg/Clock[ignition.msgs.Clock',
-            '/camera/image@sensor_msgs/msg/Image[ignition.msgs.Image',
-            '/camera/depth_image@sensor_msgs/msg/Image[ignition.msgs.Image',
-            '/camera/camera_info@sensor_msgs/msg/CameraInfo[ignition.msgs.CameraInfo',
-        ],
-        parameters=[sim_time])
+    # ---------------- Bridge:  "[" = Gazebo -> ROS,  "]" = ROS -> Gazebo ----------------
+    bridge_args = [
+        '/clock@rosgraph_msgs/msg/Clock[ignition.msgs.Clock',
+        '/camera/image@sensor_msgs/msg/Image[ignition.msgs.Image',
+        '/camera/depth_image@sensor_msgs/msg/Image[ignition.msgs.Image',
+        '/camera/camera_info@sensor_msgs/msg/CameraInfo[ignition.msgs.CameraInfo',
+    ]
+    for c in CUBES:
+        bridge_args += [
+            f'/model/{c}/pose@geometry_msgs/msg/PoseStamped[ignition.msgs.Pose',
+            f'/pnp/attach/{c}@std_msgs/msg/Empty]ignition.msgs.Empty',
+            f'/pnp/detach/{c}@std_msgs/msg/Empty]ignition.msgs.Empty',
+        ]
+    bridge = Node(package='ros_gz_bridge', executable='parameter_bridge', output='screen',
+                  arguments=bridge_args, parameters=[sim_time])
 
     # Camera position in TF: must match the overhead_camera pose in the world file
     camera_tf = [
@@ -93,24 +102,12 @@ def generate_launch_description():
         package='robot_state_publisher', executable='robot_state_publisher',
         parameters=[cfg.robot_description, sim_time])
 
-    # Activate controllers ONE AFTER ANOTHER: the slow (CPU-rendered) simulation
-    # can't serve three activation requests at once within the timeout.
-    def spawner(name):
-        return Node(package='controller_manager', executable='spawner',
-                    arguments=[name, '--controller-manager', '/controller_manager',
-                               '--controller-manager-timeout', '60'],
-                    parameters=[sim_time])
-
-    jsb_spawner = spawner('joint_state_broadcaster')
-    arm_spawner = spawner('arm_controller')
-    gripper_spawner = spawner('gripper_controller')
-
-    start_controllers = [
-        # robot spawned -> joint_state_broadcaster -> arm -> gripper
-        RegisterEventHandler(OnProcessExit(target_action=spawn, on_exit=[jsb_spawner])),
-        RegisterEventHandler(OnProcessExit(target_action=jsb_spawner, on_exit=[arm_spawner])),
-        RegisterEventHandler(OnProcessExit(target_action=arm_spawner, on_exit=[gripper_spawner])),
-    ]
+    # Our own activator: retries until ALL controllers are active (robust on slow machines).
+    # Starts once the robot exists in Gazebo (the controller manager lives inside Gazebo).
+    controller_activator = Node(
+        package='pnp_task', executable='controller_activator', output='screen')
+    start_controllers = RegisterEventHandler(
+        OnProcessExit(target_action=spawn, on_exit=[controller_activator]))
 
     # ---------------- MoveIt + RViz ----------------
     move_group = Node(
@@ -129,12 +126,17 @@ def generate_launch_description():
         parameters=[os.path.join(perception_pkg, 'config', 'object_detector.yaml')],
         output='screen')
 
-    # ---------------- Pick-and-place action server ----------------
+    # ---------------- Manipulation ----------------
     pick_place_server = Node(
         package='pnp_manipulation', executable='pick_place_server', output='screen',
         parameters=[os.path.join(manipulation_pkg, 'config', 'pick_place_server.yaml'),
                     cfg.robot_description, cfg.robot_description_semantic,
                     cfg.robot_description_kinematics, cfg.joint_limits, sim_time])
+
+    # Simulation-only "magnetic" grasp helper
+    grasp_bridge = Node(
+        package='pnp_task', executable='gz_grasp_bridge', output='screen',
+        parameters=[{'cubes': CUBES}, sim_time])
 
     # ---------------- Order matters: arguments and environment first ----------------
     return LaunchDescription([
@@ -147,9 +149,10 @@ def generate_launch_description():
         *camera_tf,
         robot_state_publisher,
         spawn,
-        *start_controllers,
+        start_controllers,
         move_group,
         rviz,
         detector,
         pick_place_server,
+        grasp_bridge,
     ])
