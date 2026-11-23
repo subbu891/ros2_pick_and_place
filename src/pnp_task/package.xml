@@ -3,7 +3,7 @@
 <package format="3">
   <name>pnp_task</name>
   <version>0.0.0</version>
-  <description>TODO: Package description</description>
+  <description>Task layer: autonomous colour sorting, controller activation and simulated grasp helper (Python).</description>
   <maintainer email="subrahmanyam.kodela33@gmail.com">nast41</maintainer>
   <license>Apache-2.0</license>
 
@@ -12,8 +12,8 @@
   <depend>geometry_msgs</depend>
   <depend>tf2_ros</depend>
   <depend>controller_manager_msgs</depend>
-  <depend>biltin_interfaces</depend>
-  <depend>pnp_interface</depend>
+  <depend>builtin_interfaces</depend>
+  <depend>pnp_interfaces</depend>
 
   <test_depend>ament_copyright</test_depend>
   <test_depend>ament_flake8</test_depend>

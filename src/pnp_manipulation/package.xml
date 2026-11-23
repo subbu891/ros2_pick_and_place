@@ -3,7 +3,7 @@
 <package format="3">
   <name>pnp_manipulation</name>
   <version>0.0.0</version>
-  <description>TODO: Package description</description>
+  <description>MoveIt 2 pick-and-place action server and grasp planning library (C++).</description>
   <maintainer email="subrahmanyam.kodela33@gmail.com">nast41</maintainer>
   <license>Apache-2.0</license>
 
