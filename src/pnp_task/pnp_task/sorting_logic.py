@@ -1,3 +1,5 @@
+"""Pure-Python sorting logic (no ROS imports, so it's easy to unit test)."""
+
 from __future__ import annotations
 
 from dataclasses import dataclass, field
@@ -26,11 +28,10 @@ class Track:
     y: float
     z: float
     yaw: float
-    hits: int = 1       # how often it was seen
-    misses: int = 0     # consecutive frames it was NOT seen
+    hits: int = 1
+    misses: int = 0
 
     def update(self, obs: Observation, alpha: float) -> None:
-        # Smooth the position (exponential moving average) to reduce noise
         self.x += alpha * (obs.x - self.x)
         self.y += alpha * (obs.y - self.y)
         self.z += alpha * (obs.z - self.z)
@@ -44,7 +45,7 @@ class Bin:
     color: str
     x: float
     y: float
-    size: float = 0.13   # inner width [m]
+    size: float = 0.13
 
     def contains(self, x: float, y: float) -> bool:
         half = self.size / 2.0
@@ -52,10 +53,7 @@ class Bin:
 
     def slot(self, index: int, spacing: float = 0.055, cols: int = 2,
              rows: int = 2) -> Tuple[float, float]:
-        """Position for the index-th cube: a 2x2 grid, so cubes never touch.
-
-        spacing must exceed the cube size + placement error (40 mm + ~10 mm).
-        """
+        """Position for the index-th cube: a 2x2 grid, so cubes never touch."""
         row, col = divmod(index % (cols * rows), cols)
         ox = (col - (cols - 1) / 2.0) * spacing
         oy = (row - (rows - 1) / 2.0) * spacing
@@ -79,17 +77,16 @@ class Workspace:
 class ObjectTracker:
     """Nearest-neighbour tracking with hit / miss counting."""
 
-    match_radius: float = 0.03   # max movement between frames to count as "same object"
-    min_hits: int = 3            # sightings needed before a track is trusted
-    max_misses: int = 5          # consecutive misses before a track is dropped
-    alpha: float = 0.5           # smoothing factor
+    match_radius: float = 0.03
+    min_hits: int = 3
+    max_misses: int = 5
+    alpha: float = 0.5
     tracks: Dict[str, Track] = field(default_factory=dict)
     _next_id: Dict[str, int] = field(default_factory=dict)
 
     def update(self, observations: Iterable[Observation]) -> None:
         unmatched = set(self.tracks)
         for obs in observations:
-            # Find the closest existing track of the same colour
             best, best_d = None, self.match_radius
             for tid in unmatched:
                 t = self.tracks[tid]
@@ -102,12 +99,10 @@ class ObjectTracker:
                 self.tracks[best].update(obs, self.alpha)
                 unmatched.discard(best)
             else:
-                # A new object: give it a new stable ID
                 n = self._next_id.get(obs.color, 0)
                 self._next_id[obs.color] = n + 1
                 tid = f'{obs.color}_{n}'
                 self.tracks[tid] = Track(tid, obs.color, obs.x, obs.y, obs.z, obs.yaw)
-        # Tracks not seen this frame
         for tid in unmatched:
             self.tracks[tid].misses += 1
             if self.tracks[tid].misses > self.max_misses:
@@ -127,3 +122,23 @@ def select_next_target(
     blacklist: Iterable[str] = (),
     robot_xy: Tuple[float, float] = (0.0, 0.0),
 ) -> Optional[Track]:
+    """Next cube to pick: has a bin, reachable, not sorted yet, not blacklisted.
+    Among those, the one closest to the robot base."""
+    banned = set(blacklist)
+    candidates = [
+        t for t in tracks
+        if t.track_id not in banned
+        and t.color in bins
+        and workspace.contains(t.x, t.y)
+        and not any(b.contains(t.x, t.y) for b in bins.values())
+    ]
+    if not candidates:
+        return None
+    return min(candidates, key=lambda t: math.hypot(t.x - robot_xy[0], t.y - robot_xy[1]))
+
+
+def pick_was_verified(tracker: ObjectTracker, track_id: str) -> bool:
+    """After a reported success, the camera must no longer see the object at
+    its pick spot (missed in recent frames, or dropped by the tracker)."""
+    t = tracker.tracks.get(track_id)
+    return t is None or t.misses > 0
