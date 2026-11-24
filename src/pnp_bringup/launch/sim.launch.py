@@ -12,7 +12,7 @@ from launch.substitutions import LaunchConfiguration, PythonExpression
 from launch_ros.actions import Node
 from moveit_configs_utils import MoveItConfigsBuilder
 
-# Must match the cube names in pnp_world.sdf and pnp.gazebo_grasp.xacro
+
 CUBES = ['cube_red_0', 'cube_red_1', 'cube_green_0', 'cube_green_1',
          'cube_blue_0', 'cube_blue_1']
 
@@ -26,7 +26,7 @@ def generate_launch_description():
     world = os.path.join(bringup_pkg, 'worlds', 'pnp_world.sdf')
     sim_time = {'use_sim_time': True}
 
-    # ---------------- MoveIt configuration (robot in Gazebo mode) ----------------
+    
     cfg = (
         MoveItConfigsBuilder('ur5e_pnp', package_name='pnp_moveit_config')
         .robot_description(file_path=os.path.join(desc_pkg, 'urdf', 'ur5e_pnp.urdf.xacro'),
@@ -39,7 +39,7 @@ def generate_launch_description():
         .to_moveit_configs()
     )
 
-    # ---------------- Launch arguments ----------------
+    #Launch arguments 
     headless_arg = DeclareLaunchArgument(
         'headless', default_value='true',
         description='Run Gazebo without its GUI window (true/false)')
@@ -48,7 +48,7 @@ def generate_launch_description():
         description='Start the autonomous sorting task (true/false)')
     headless = LaunchConfiguration('headless', default='true')
 
-    # ---------------- Environment ----------------
+    #Environment
     software_gl = SetEnvironmentVariable('LIBGL_ALWAYS_SOFTWARE', '1')
     mesh_path = AppendEnvironmentVariable(
         'IGN_GAZEBO_RESOURCE_PATH',
@@ -56,7 +56,7 @@ def generate_launch_description():
     model_path = AppendEnvironmentVariable(
         'IGN_GAZEBO_RESOURCE_PATH', os.path.join(bringup_pkg, 'models'))
 
-    # ---------------- Gazebo ----------------
+    #Gazebo
     gazebo = IncludeLaunchDescription(
         PythonLaunchDescriptionSource(os.path.join(
             get_package_share_directory('ros_gz_sim'), 'launch', 'gz_sim.launch.py')),
@@ -66,7 +66,7 @@ def generate_launch_description():
     spawn = Node(package='ros_gz_sim', executable='create', output='screen',
                  arguments=['-topic', 'robot_description', '-name', 'ur5e_pnp'])
 
-    # ---------------- Bridge:  "[" = Gazebo -> ROS,  "]" = ROS -> Gazebo ----------------
+    
     bridge_args = [
         '/clock@rosgraph_msgs/msg/Clock[ignition.msgs.Clock',
         '/camera/image@sensor_msgs/msg/Image[ignition.msgs.Image',
@@ -95,7 +95,7 @@ def generate_launch_description():
              parameters=[sim_time]),
     ]
 
-    # ---------------- Robot state + controllers ----------------
+    #Robot state + controllers
     robot_state_publisher = Node(
         package='robot_state_publisher', executable='robot_state_publisher',
         parameters=[cfg.robot_description, sim_time])
@@ -105,7 +105,7 @@ def generate_launch_description():
     start_controllers = RegisterEventHandler(
         OnProcessExit(target_action=spawn, on_exit=[controller_activator]))
 
-    # ---------------- MoveIt + RViz ----------------
+    #MoveIt + RViz
     move_group = Node(
         package='moveit_ros_move_group', executable='move_group', output='screen',
         parameters=[cfg.to_dict(), sim_time])
@@ -116,13 +116,13 @@ def generate_launch_description():
         parameters=[cfg.robot_description, cfg.robot_description_semantic,
                     cfg.planning_pipelines, sim_time])
 
-    # ---------------- Perception ----------------
+    #Perception
     detector = Node(
         package='pnp_perception', executable='object_detector', name='object_detector',
         parameters=[os.path.join(perception_pkg, 'config', 'object_detector.yaml')],
         output='screen')
 
-    # ---------------- Manipulation ----------------
+    #Manipulation
     pick_place_server = Node(
         package='pnp_manipulation', executable='pick_place_server', output='screen',
         parameters=[os.path.join(manipulation_pkg, 'config', 'pick_place_server.yaml'),
@@ -133,12 +133,12 @@ def generate_launch_description():
         package='pnp_task', executable='gz_grasp_bridge', output='screen',
         parameters=[{'cubes': CUBES}, sim_time])
 
-    # ---------------- Task layer ----------------
+    #Task layer
     sorter = Node(
         package='pnp_task', executable='sorter', output='screen',
         parameters=[{
             'bin_colors': ['red', 'green', 'blue'],
-            'bin_x': [0.30, 0.45, 0.60],      # must match the bins in pnp_world.sdf
+            'bin_x': [0.30, 0.45, 0.60],     
             'bin_y': [0.35, 0.35, 0.35],
             'workspace': [0.25, 0.75, -0.40, 0.22],
             'settle_time': 4.0,
